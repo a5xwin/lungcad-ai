@@ -1,11 +1,16 @@
 import React, { useContext } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { useNavigate } from 'react-router-dom';
 import { assets } from '../assets/assets';
 import { AppContent } from '../context/AppContext';
 
 const Header = () => {
-  const { userData } = useContext(AppContent);
-  const navigate = useNavigate(); // Initialize navigation
+  const { userData, isLoggedin } = useContext(AppContent);
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    // Navigate to the get-started page which will handle role-based navigation
+    navigate('/get-started');
+  };
 
   return (
     <div className='flex flex-col items-center mt-20 px-4 text-center text-gray-800'>
@@ -18,12 +23,14 @@ const Header = () => {
       <p className='mb-8 max-w-md'>
         Scan lungs faster than your WiFi loads memes. Early detection, no cap. Stay ahead, and stay healthy fr!
       </p>
-      <button 
-        className='border border-gray-500 rounded-full px-8 py-2.5 hover:bg-gray-100 transition-all'
-        onClick={() => navigate('/new')} // Navigate on click
-      >
-        Get Started
-      </button>
+      {isLoggedin && userData ? (
+        <button 
+          className='border border-gray-500 rounded-full px-8 py-2.5 hover:bg-gray-100 transition-all'
+          onClick={handleGetStarted}
+        >
+          Get Started
+        </button>
+      ) : null}
     </div>
   );
 };

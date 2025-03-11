@@ -16,34 +16,29 @@ const Login = () => {
   const [role, setRole] = useState('User');
 
   const onSubmitHandler = async (e) => {
+    e.preventDefault();
     try {
-      e.preventDefault();
-
       axios.defaults.withCredentials = true;
+      let response;
 
       if (state === 'Sign Up') {
-        const { data } = await axios.post(backendUrl + '/api/auth/register', { name, email, password, role });
-
-        if (data.success) {
-          setIsLoggedin(true);
-          getUserData();
-          navigate('/');
-        } else {
-          toast.error(data.message);
-        }
+        response = await axios.post(`${backendUrl}/api/auth/register`, { name, email, password, role: role.toLowerCase() });
       } else {
-        const { data } = await axios.post(backendUrl + '/api/auth/login', { email, password, role });
+        // Send role on login as well
+        response = await axios.post(`${backendUrl}/api/auth/login`, { email, password, role: role.toLowerCase() });
+      }
 
-        if (data.success) {
-          setIsLoggedin(true);
-          getUserData();
-          navigate('/');
-        } else {
-          toast.error(data.message);
-        }
+      const { data } = response;
+      if (data.success) {
+        setIsLoggedin(true);
+        getUserData();
+        toast.success(`${state} successful!`);
+        navigate('/');
+      } else {
+        toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || 'Something went wrong!');
     }
   };
 

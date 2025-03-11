@@ -1,5 +1,6 @@
 import express from "express";
 import multer from "multer";
+import userAuth, { authorizeRoles } from "../middleware/userAuth.js";
 
 const router = express.Router();
 
@@ -7,7 +8,8 @@ const router = express.Router();
 const storage = multer.memoryStorage(); // Stores file in memory as a buffer
 const upload = multer({ storage: storage });
 
-router.post("/upload", upload.single("file"), async (req, res) => {
+// ✅ Only authenticated users can upload
+router.post("/upload", userAuth, authorizeRoles('doctor'), upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded" });
@@ -23,4 +25,4 @@ router.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-export default router; // ✅ Use ES module export
+export default router;
