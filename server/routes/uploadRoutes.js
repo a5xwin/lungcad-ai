@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import userAuth, { authorizeRoles } from "../middleware/userAuth.js";
+import { downloadPdf } from '../controllers/pdfController.js';
 import { spawn } from "child_process";
 import path from "path"; // ✅ Import path module
 import { fileURLToPath } from "url"; // ✅ Needed for ES modules
@@ -8,47 +9,55 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const router = express.Router();
-
-// Configure multer storage
-const storage = multer.memoryStorage(); // Stores file in memory as a buffer
-const upload = multer({ storage: storage });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // ✅ 50MB Limit
+});
 
 function runInference(fileBuffer) {
   return new Promise((resolve, reject) => {
-    const scriptPath = path.join(__dirname, "MODELINFERENCE.py"); // ✅ Use absolute path
-
-    const pythonProcess = spawn("python", [scriptPath]);
-
-    let result = "";
-    let error = "";
-
-    pythonProcess.stdin.write(fileBuffer);
-    pythonProcess.stdin.end();
-    pythonProcess.stdout.on("data", (data) => {
-      result += data.toString();
+    const scriptPath = path.join(__dirname, "test.py");
+    const pythonProcess = spawn("python3", [scriptPath]);
+    
+    let resultBuffer = Buffer.from([]); // To collect PNG binary data
+    let metadata = '';
+    pythonProcess.stdin.on('error', (err) => {
+      if (err.code === 'EPIPE') {
+        console.warn('Python process closed stdin');
+      } else {
+        reject(err);
+      }
     });
 
-    pythonProcess.stderr.on("data", (data) => {
-      error += data.toString();
+    if (pythonProcess.stdin.writable) {
+      pythonProcess.stdin.write(fileBuffer);
+      pythonProcess.stdin.end();
+    }
+
+    pythonProcess.stdout.on("data", (data) => {
+      resultBuffer = Buffer.concat([resultBuffer, data]);
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      metadata += data.toString();
+      console.log(metadata);
     });
 
     pythonProcess.on("close", (code) => {
       if (code === 0) {
-        resolve(result.trim());
+        resolve({pngBuffer: resultBuffer,metadata}); // Return the PNG buffer
       } else {
-        reject(`Python script exited with code ${code}: ${error}`);
+        reject(new Error(`Python process exited with code ${code}`));
       }
     });
 
     pythonProcess.on("error", (err) => {
-      reject(`Failed to start Python process: ${err.message}`);
+      reject(err);
     });
   });
 }
 
 
-
-// ✅ Only authenticated users can upload
 router.post("/upload", userAuth, authorizeRoles('doctor'), upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
@@ -56,14 +65,14 @@ router.post("/upload", userAuth, authorizeRoles('doctor'), upload.single("file")
     }
 
     console.log("Received file:", req.file.originalname);
-    // console.log("File buffer:", req.file.buffer); // File data in memory
 
-    const output = await runInference(req.file.buffer);
-    console.log(output);
-    const poutput= await output.json();
-    return res.json(poutput);
-
-    res.json({ message: "File uploaded successfully", filename: req.file.originalname });
+    const {pngBuffer,metadata} = await runInference(req.file.buffer);
+    res.json({ 
+      message: "File uploaded successfully", 
+      filename: req.file.originalname,
+      imageData: pngBuffer.toString('base64'), // Convert buffer to base64 for JSON
+      metadata: JSON.parse(metadata)
+    });
   } catch (error) {
     console.error("Upload error:", error);
     res.status(500).json({ error: "File upload failed" });
