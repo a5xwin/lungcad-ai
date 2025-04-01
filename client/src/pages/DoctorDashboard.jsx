@@ -1,8 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react';
 import axios from 'axios';
-
+import Navbar from '../components/Navbar.jsx'
+import { useNavigate } from 'react-router-dom';
+import { AppContent  } from '../context/AppContext';
 const DoctorDashboard = () => {
+  const navigate = useNavigate();
+  const {userData,backendUrl,setUserData,setIsLoggedin} = useContext(AppContent);
+  
   const [patients, setPatients] = useState([]);
+
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [formData, setFormData] = useState({
     gender: '',
@@ -54,6 +60,9 @@ const DoctorDashboard = () => {
       [name]: value
     }));
   };
+  const handleButton = ()=>{
+    console.log("hello world");
+  }
 
   const handleUpdatePatient = async () => {
     if (!selectedPatient) return;
@@ -76,25 +85,32 @@ const DoctorDashboard = () => {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>Doctor Dashboard</h2>
-      <div style={{ display: 'flex', gap: '30px' }}>
+    <div className="flex flex-col">
+      <Navbar/>
+      <div className=" flex gap-[30px]">
         {/* Patients List */}
-        <div style={{ width: '300px' }}>
-          <h3>Patients</h3>
+        <div className="w-[300px] border-r-[#B0A6B5] border-r-1">
           {patients.map((patient) => (
             <div
+              className=" p-5 cursor-pointer hover:bg-[#B0A6B5]"
               key={patient._id}
-              style={{ border: '1px solid #ccc', margin: '5px 0', padding: '10px', cursor: 'pointer' }}
               onClick={() => handleSelectPatient(patient)}
             >
-              <p><strong>Name:</strong> {patient.name}</p>
-              <p><strong>Email:</strong> {patient.email}</p>
+              <p>{patient.name}</p>
             </div>
           ))}
         </div>
 
         {/* Selected Patient Details */}
+        {selectedPatient && (
+          <div className="bg-[#E2588A] w-20vw h-20vh">
+            <h3> Patient: {selectedPatient.name}</h3>
+            <div>
+              <label>Gender: </label>
+              <input type="text" name="gender" value={formData.gender} onChange={handleChange}/>
+            </div>
+          </div>
+        )}
         {selectedPatient && (
           <div style={{ flexGrow: 1 }}>
             <h3>Update Patient: {selectedPatient.name}</h3>
@@ -135,6 +151,7 @@ const DoctorDashboard = () => {
               <label>Last Visited (date):</label>
               <input type="date" name="lastVisited" value={formData.lastVisited} onChange={handleChange} />
             </div>
+            <button className="bg-[#434371] h-10 w-10"onClick={handleButton}>Upload Image</button>
             <button onClick={handleUpdatePatient} style={{ marginTop: '10px' }}>Update Patient</button>
           </div>
         )}

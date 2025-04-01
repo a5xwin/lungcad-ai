@@ -13,7 +13,6 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // ✅ 50MB Limit
 });
-
 function runInference(fileBuffer) {
   return new Promise((resolve, reject) => {
     const scriptPath = path.join(__dirname, "test.py");
@@ -65,7 +64,6 @@ router.post("/upload", userAuth, authorizeRoles('doctor'), upload.single("file")
     }
 
     console.log("Received file:", req.file.originalname);
-
     const {pngBuffer,metadata} = await runInference(req.file.buffer);
     res.json({ 
       message: "File uploaded successfully", 
