@@ -18,13 +18,16 @@ jobs:
         run: |
           sudo apt-get install git-lfs
           git lfs install
-          git lfs track "*.png" "*.jpg" "*.JPG" "*.pth"  # Track necessary binary files
-          git add .gitattributes
-          git commit -m "Track large files with Git LFS" || echo "No changes to commit"
+
+      - name: Push LFS files to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git lfs push --all https://huggingface.co/spaces/Ripe-Mango/ButTheKidIsNotMySon main
 
       - name: Push to Hugging Face Hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git lfs push https://Ripe-Mango:$HF_TOKEN@huggingface.co/spaces/Ripe-Mango/ButTheKidIsNotMySon main
-          git push --force https://Ripe-Mango:$HF_TOKEN@huggingface.co/spaces/Ripe-Mango/ButTheKidIsNotMySon main
+          git push https://Ripe-Mango:$HF_TOKEN@huggingface.co/spaces/Ripe-Mango/ButTheKidIsNotMySon main
+
