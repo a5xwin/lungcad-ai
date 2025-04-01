@@ -1,0 +1,30 @@
+name: Sync to Hugging Face Hub
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync-to-hub:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Git LFS
+        run: |
+          sudo apt-get install git-lfs
+          git lfs install
+          git lfs track "*.png" "*.jpg" "*.JPG" "*.pth"  # Track necessary binary files
+          git add .gitattributes
+          git commit -m "Track large files with Git LFS" || echo "No changes to commit"
+
+      - name: Push to Hugging Face Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git lfs push https://Ripe-Mango:$HF_TOKEN@huggingface.co/spaces/Ripe-Mango/ButTheKidIsNotMySon main
+          git push --force https://Ripe-Mango:$HF_TOKEN@huggingface.co/spaces/Ripe-Mango/ButTheKidIsNotMySon main
