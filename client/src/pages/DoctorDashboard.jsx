@@ -78,47 +78,103 @@ const DoctorDashboard = () => {
       setIsLoading(false);
     }
   }; 
-  const generatePDF = (imageUrl, diagnosisResult) => {
-    // Check if imageUrl is defined
-    const imageSection = imageUrl 
-      ? `<div style="margin: 20px 0;">
-        <h2 style="color: #34495e;">Scan Results</h2>
-        <img src="${imageUrl}" style="max-width: 100%; margin: 10px 0;" />
-        <p><strong>AI Diagnosis Confidence:</strong> ${diagnosisResult || 'N/A'}%</p>
-      </div>`
-      : `<div style="margin: 20px 0;">
-        <h2 style="color: #34495e;">Scan Results</h2>
-        <p>No scan image available</p>
-      </div>`;
+  const generatePDF = async (imageUrl, diagnosisResult) => {
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
 
-    const content = document.createElement('div');
-    content.innerHTML = `
-    <div style="padding: 20px; font-family: Arial, sans-serif;">
-      <h1 style="color: #2c3e50; text-align: center;">Patient Medical Report</h1>
-
-      <div style="margin: 20px 0;">
-        <h2 style="color: #34495e;">Patient Information</h2>
-        <p><strong>Name:</strong> ${selectedPatient.name}</p>
-        <p><strong>Age:</strong> ${formData.age}</p>
-        <p><strong>Gender:</strong> ${formData.gender}</p>
-        <p><strong>Blood Group:</strong> ${formData.bloodgrp}</p>
-        <p><strong>Doctor:</strong> ${formData.docName}</p>
-        <p><strong>Last Visited:</strong> ${formData.lastVisited}</p>
-      </div>
-
-      ${imageSection}
-    </div>
-  `;
-
-    const opt = {
-      margin: 1,
-      filename: `${selectedPatient.name}_medical_report.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+    // Convert base64 image to blob URL for better handling
+    const getImageBlob = async (url) => {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      return URL.createObjectURL(blob);
     };
 
-    html2pdf().set(opt).from(content).save();
+    try {
+      // Convert base64 image to blob URL if image exists
+      const processedImageUrl = imageUrl ? await getImageBlob(imageUrl) : null;
+
+      const imageSection = imageUrl 
+        ? `<div style="margin: 20px 0;">
+          <h2 style="color: #34495e;">Scan Results</h2>
+          <img src="${processedImageUrl}" style="max-width: 100%; height: auto; margin: 10px 0;" />
+          <p><strong>AI Diagnosis Confidence:</strong> ${diagnosisResult || 'N/A'}%</p>
+        </div>`
+        : `<div style="margin: 20px 0;">
+          <h2 style="color: #34495e;">Scan Results</h2>
+          <p>No scan image available</p>
+        </div>`;
+
+      container.innerHTML = `
+      <div style="padding: 20px; font-family: Arial, sans-serif;">
+        // ... rest of your HTML content ...
+        ${imageSection}
+      </div>
+    `;
+
+      document.body.appendChild(container);
+
+      const opt = {
+        margin: 1,
+        filename: `${selectedPatient.name}_medical_report.pdf`,
+        image: { type: 'jpeg', quality: 1 },
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          foreignObjectRendering: true
+        },
+        jsPDF: { 
+          unit: 'in', 
+          format: 'letter', 
+          orientation: 'portrait',
+          compress: true
+        }
+      };
+
+      // Generate PDF as blob
+      const pdfBlob = await html2pdf().set(opt).from(container).output('blob');
+
+      // Clean up blob URL
+      if (processedImageUrl) {
+        URL.revokeObjectURL(processedImageUrl);
+      }
+
+      // Upload to database first
+      await uploadReportToDB(pdfBlob);
+
+      // Then download locally
+      const pdfUrl = URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = pdfUrl;
+      link.download = `${selectedPatient.name}_medical_report.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(pdfUrl);
+
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      alert('Failed to generate PDF');
+    } finally {
+      if (container.parentNode) {
+        document.body.removeChild(container);
+      }
+    }
+  };
+  const uploadReportToDB = async (pdfBlob) => {
+    try {
+      const formData = new FormData();
+      formData.append('pdf', pdfBlob, `${selectedPatient.name}_report.pdf`);
+
+      await axios.post(
+        `${backendUrl}/api/doctor/patients/${selectedPatient._id}/reports`,
+        formData,
+        { withCredentials: true }
+      );
+    } catch (error) {
+      console.error('Report upload failed:', error);
+    }
   };
   const fetchPatients = async () => {
     try {
@@ -350,7 +406,12 @@ const DoctorDashboard = () => {
       >
       Update Patient
       </button>
+      <button 
+      onClick={() => navigate('/patient-reports', { state: { patient: selectedPatient }})}
+      className="bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors"
+      >View Reports</button>
       </div>
+
 
       {isLoading && (
         <div className="mt-4 text-gray-600">
@@ -375,3 +436,5 @@ const DoctorDashboard = () => {
 };
 
 export default DoctorDashboard;
+
+
