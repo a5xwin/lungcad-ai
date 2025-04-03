@@ -9,7 +9,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { backendUrl, setIsLoggedin, getUserData } = useContext(AppContent);
 
-  const [state, setState] = useState('Sign Up');
+  const [state, setState] = useState('Login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -33,7 +33,14 @@ const Login = () => {
         setIsLoggedin(true);
         getUserData();
         toast.success(`${state} successful!`);
-        navigate('/');
+        console.log("SUCCESS LETS GOO")
+        console.log(data.role);
+        if (data.role == 'doctor'){
+          navigate('/doctor-dashboard')
+        }
+        else{
+          navigate('/');
+        }
       } else {
         toast.error(data.message);
       }
@@ -74,9 +81,9 @@ const Login = () => {
               <option value='Admin'>Admin</option>
             </select>
           </div>
-
+          {state === 'Login' && (
           <p onClick={() => navigate('/reset-password')} className='mb-4 cursor-pointer text-purple-120'>Forgot Password?</p>
-
+          )}
           <button className='w-full py-2.5 rounded-full bg-gradient-to-r from-violet-500 to-violet-900 text-white font-medium'>{state}</button>
 
           {state === 'Sign Up' ? (

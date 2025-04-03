@@ -9,6 +9,10 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 
 const app = express();
+
+app.use(express.json({ limit: "50mb" })); // ⬆ Increase JSON size
+app.use(express.urlencoded({ limit: "50mb", extended: true })); // ⬆ Increase URL-encoded size
+
 const port = process.env.PORT || 4000;
 connectDB();
 

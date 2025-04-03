@@ -21,7 +21,7 @@ const Header = () => {
       </h1>
       <h2 className='text-3xl sm:text-5xl font-semibold mb-4'>Welcome to LungCAD</h2>
       <p className='mb-8 max-w-md'>
-        Scan lungs faster than your WiFi loads memes. Early detection, no cap. Stay ahead, and stay healthy fr!
+        A step towards a safe and healthy life
       </p>
       {isLoggedin && userData ? (
         <button 
