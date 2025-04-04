@@ -38,8 +38,8 @@ const Login = () => {
         if (data.role == 'doctor'){
           navigate('/doctor-dashboard')
         }
-        else{
-          navigate('/');
+        else if(data.role == 'user'){
+          navigate('/user-dashboard');
         }
       } else {
         toast.error(data.message);

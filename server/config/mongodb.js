@@ -1,12 +1,9 @@
 import mongoose from "mongoose";
-
 const connectDB = async () => {
   try {
     await mongoose.connect(`${process.env.MONGODB_URI}/mern-auth`, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       maxPoolSize: 50,
-      wtimeout: 2500
+      wtimeoutMS: 2500  // Changed from wtimeout
     });
     console.log("Database Connected");
   } catch (error) {
@@ -14,5 +11,4 @@ const connectDB = async () => {
     process.exit(1);
   }
 };
-
 export default connectDB;

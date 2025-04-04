@@ -11,14 +11,18 @@ import ResetPassword from './pages/ResetPassword';
 import NewPage from './pages/NewPage';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import PatientReports from './pages/PatientReports';
+import PDFContent from './pages/PDFContent';
+import AllMedicalReports from './pages/AllMedicalReports';
+import PatientReports from './pages/PatientReports'; 
 
 const App = () => {
   return (
     <div>
       <ToastContainer />
       <Routes>
+        <Route path='/reports' element={<PatientReports />}/>
         <Route path='/' element={<Home />} />
+        <Route path='/pdf' element={<PDFContent/>}/>
         <Route path='/login' element={<Login />} />
         <Route path='/dashboard' element={<Dashboard />} />
         <Route path='/doctor-dashboard' element={<DoctorDashboard />} />
@@ -27,7 +31,6 @@ const App = () => {
         <Route path='/email-verify' element={<EmailVerify />} />
         <Route path='/reset-password' element={<ResetPassword />} />
         <Route path='/new' element={<NewPage />} />
-        <Route path="/patient-reports" element={<PatientReports />} />
       </Routes>
     </div>
   );

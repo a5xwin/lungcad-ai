@@ -10,6 +10,7 @@ export const getUserData = async (req, res) => {
         res.json({
             success: true,
             userData: {
+                id: user._id,
                 name: user.name,
                 isAccountVerified: user.isAccountVerified,
                 role: user.role  // Added role field
