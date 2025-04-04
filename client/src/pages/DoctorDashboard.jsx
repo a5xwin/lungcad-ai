@@ -36,144 +36,43 @@ const DoctorDashboard = () => {
   const handleFileChange = (event) => {
     setSelectedFile(event.target.files[0]);
   };
-
   const handleUpload = async () => {
     if (!selectedFile || !selectedPatient) return;
-
+  
     setIsLoading(true);
     const formData = new FormData();
     formData.append('file', selectedFile);
     formData.append('patientId', selectedPatient._id);
-
+    formData.append('patientName',selectedPatient.name);
+    formData.append('patientAge',selectedPatient.age);
+    formData.append('patientGender',selectedPatient.gender);
+  
     try {
       const response = await axios.post(`${backendUrl}/api/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         withCredentials: true
       });
-
-      console.log('Upload response:', response.data);
-
-      // The response contains imageData (base64) instead of imageUrl
+  
       if (response.data && response.data.imageData) {
-        // Create a data URL from the base64 image data
-        const imageUrl = `data:image/png;base64,${response.data.imageData}`;
-        setUploadedImage(imageUrl);
-
-        // Get confidence from metadata
-        const confidence = response.data.metadata?.confidence 
+        // Prepare data for PDF document
+        const diagnosisResult = response.data.metadata?.confidence 
           ? (parseFloat(response.data.metadata.confidence) * 100).toFixed(2)
           : '0';
-        setConfidence(confidence);
-
-        // Generate PDF with the image URL and confidence
-        generatePDF(imageUrl, confidence);
-      } else {
-        console.error('Invalid response format:', response.data);
-        generatePDF(null, '0');
+  
+        // Navigate to PDF document page with results
+        navigate('/pdf', {
+          state: {
+            patientData: selectedPatient,
+            diagnosisResult,
+            scanImage: `data:image/png;base64,${response.data.imageData}`
+          }
+        });
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      generatePDF(null, '0');
+      alert('File upload failed');
     } finally {
       setIsLoading(false);
-    }
-  }; 
-  const generatePDF = async (imageUrl, diagnosisResult) => {
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-
-    // Convert base64 image to blob URL for better handling
-    const getImageBlob = async (url) => {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      return URL.createObjectURL(blob);
-    };
-
-    try {
-      // Convert base64 image to blob URL if image exists
-      const processedImageUrl = imageUrl ? await getImageBlob(imageUrl) : null;
-
-      const imageSection = imageUrl 
-        ? `<div style="margin: 20px 0;">
-          <h2 style="color: #34495e;">Scan Results</h2>
-          <img src="${processedImageUrl}" style="max-width: 100%; height: auto; margin: 10px 0;" />
-          <p><strong>AI Diagnosis Confidence:</strong> ${diagnosisResult || 'N/A'}%</p>
-        </div>`
-        : `<div style="margin: 20px 0;">
-          <h2 style="color: #34495e;">Scan Results</h2>
-          <p>No scan image available</p>
-        </div>`;
-
-      container.innerHTML = `
-      <div style="padding: 20px; font-family: Arial, sans-serif;">
-        // ... rest of your HTML content ...
-        ${imageSection}
-      </div>
-    `;
-
-      document.body.appendChild(container);
-
-      const opt = {
-        margin: 1,
-        filename: `${selectedPatient.name}_medical_report.pdf`,
-        image: { type: 'jpeg', quality: 1 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          allowTaint: true,
-          foreignObjectRendering: true
-        },
-        jsPDF: { 
-          unit: 'in', 
-          format: 'letter', 
-          orientation: 'portrait',
-          compress: true
-        }
-      };
-
-      // Generate PDF as blob
-      const pdfBlob = await html2pdf().set(opt).from(container).output('blob');
-
-      // Clean up blob URL
-      if (processedImageUrl) {
-        URL.revokeObjectURL(processedImageUrl);
-      }
-
-      // Upload to database first
-      await uploadReportToDB(pdfBlob);
-
-      // Then download locally
-      const pdfUrl = URL.createObjectURL(pdfBlob);
-      const link = document.createElement('a');
-      link.href = pdfUrl;
-      link.download = `${selectedPatient.name}_medical_report.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(pdfUrl);
-
-    } catch (error) {
-      console.error('PDF generation failed:', error);
-      alert('Failed to generate PDF');
-    } finally {
-      if (container.parentNode) {
-        document.body.removeChild(container);
-      }
-    }
-  };
-  const uploadReportToDB = async (pdfBlob) => {
-    try {
-      const formData = new FormData();
-      formData.append('pdf', pdfBlob, `${selectedPatient.name}_report.pdf`);
-
-      await axios.post(
-        `${backendUrl}/api/doctor/patients/${selectedPatient._id}/reports`,
-        formData,
-        { withCredentials: true }
-      );
-    } catch (error) {
-      console.error('Report upload failed:', error);
     }
   };
   const fetchPatients = async () => {
@@ -211,16 +110,6 @@ const DoctorDashboard = () => {
       [name]: value
     }));
   };
-  const handleButton = ()=>{
-    if (selectedPatient) {
-      navigate('/new', { 
-        state: { 
-          patientId: selectedPatient._id,
-          patientName: selectedPatient.name
-        }
-      });
-    }
-  }
 
   const handleUpdatePatient = async () => {
     if (!selectedPatient) return;
@@ -359,19 +248,7 @@ const DoctorDashboard = () => {
       </div>
 
       <div className="mt-8 space-x-4">
-      <button 
-      className="border-2 border-gray-500 px-4 py-2 font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-600 transition-colors"
-      onClick={handleButton}
-      >
-      Upload DICOM
-      </button>
 
-      <button 
-      onClick={handleUpdatePatient}
-      className="bg-indigo-600 text-white px-4 py-2 font-medium hover:bg-indigo-700 transition-colors"
-      >
-      Update Patient
-      </button>
       <div className="mt-8 space-x-4">
       {/* ... existing Upload DICOM and Update Patient buttons ... */}
 
@@ -406,10 +283,12 @@ const DoctorDashboard = () => {
       >
       Update Patient
       </button>
-      <button 
-      onClick={() => navigate('/patient-reports', { state: { patient: selectedPatient }})}
-      className="bg-green-600 text-white px-4 py-2 font-medium hover:bg-green-700 transition-colors"
-      >View Reports</button>
+     <button
+    onClick={() => navigate('/reports', { state: { patient : selectedPatient } })}
+    className="bg-blue-500 text-white px-4 py-2 rounded"
+>
+    View Reports
+</button>
       </div>
 
 
@@ -436,5 +315,6 @@ const DoctorDashboard = () => {
 };
 
 export default DoctorDashboard;
+
 
 

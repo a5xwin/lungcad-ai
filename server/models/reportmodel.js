@@ -1,20 +1,28 @@
 import mongoose from "mongoose";
 
 const ReportSchema = new mongoose.Schema({
-  patient: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'user',
+  patientId: {
+    type: String,
     required: true
   },
-  pdf: {
-    data: Buffer,
-    contentType: String
+  pdfFile: {
+    data: {
+      type: Buffer,
+      required: true
+    },
+    contentType: {
+      type: String,
+      required: true
+    }
   },
-  filename: String,
-  uploadedAt: {
+  filename: {
+    type: String,
+    default: "report.pdf"
+  },
+  createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-export default mongoose.models.Report || mongoose.model("Report", ReportSchema);
+export default mongoose.model("Report", ReportSchema);

@@ -7,6 +7,7 @@ import authRouter from "./routes/authRoutes.js";
 import userRouter from "./routes/userRoutes.js";
 import uploadRoutes from "./routes/uploadRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
+import reportRoutes from "./routes/reportRoutes.js";
 
 const app = express();
 
@@ -27,5 +28,6 @@ app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
 app.use("/api", uploadRoutes);
 app.use("/api/doctor", doctorRoutes);
+app.use("/api/patients",reportRoutes);
 
 app.listen(port, () => console.log(`Server started on PORT:${port}`));

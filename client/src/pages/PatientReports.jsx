@@ -2,13 +2,13 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { AppContent } from '../context/AppContext';
-import Navbar from '../components/Navbar';
 
 const PatientReports = () => {
   const { backendUrl } = useContext(AppContent);
   const location = useLocation();
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(false);
   const patient = location.state?.patient;
 
   useEffect(() => {
@@ -22,10 +22,12 @@ const PatientReports = () => {
   const fetchReports = async () => {
     try {
       const response = await axios.get(
-        `${backendUrl}/api/doctor/patients/${patient._id}/reports`,
+        `${backendUrl}/api/patients/${patient._id}/reports`,
         { withCredentials: true }
       );
+      console.log(response);
       if (response.data.success) {
+        console.log('Reports fetched:', response.data.reports);
         setReports(response.data.reports);
       }
     } catch (error) {
@@ -33,61 +35,75 @@ const PatientReports = () => {
     }
   };
 
-  const downloadReport = async (reportId) => {
+  const handleDownload = async (reportId) => {
     try {
+      setLoading(true);
       const response = await axios.get(
-        `${backendUrl}/api/doctor/reports/${reportId}/download`,
+        `${backendUrl}/api/patients/${reportId}/download`,
         {
-          withCredentials: true,
-          responseType: 'blob'  // Important for receiving binary data
+          responseType: 'blob',
+          withCredentials: true
         }
       );
-
+      
       // Create a blob URL and trigger download
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'patient-report.pdf');
+      link.setAttribute('download', `report_${reportId}.pdf`);
       document.body.appendChild(link);
       link.click();
-      link.remove();
+      
+      // Clean up
       window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+      setLoading(false);
     } catch (error) {
-      console.error('Error downloading report:', error);
+      console.error('Download failed:', error);
       alert('Failed to download report');
+      setLoading(false);
     }
   };
+
   return (
-    <div className="flex flex-col min-h-screen">
-    <Navbar />
-    <div className="p-6 max-w-4xl mx-auto w-full">
-    <h2 className="text-2xl font-bold mb-6">Medical Reports for {patient?.name}</h2>
-    {reports.length > 0 ? (
-      <div className="space-y-4">
-      {reports.map((report) => (
-        <div key={report._id} className="border rounded-lg p-4 hover:bg-gray-50">
-        <div className="flex justify-between items-center">
-        <div>
-        <h3 className="font-medium">{report.filename}</h3>
-        <p className="text-sm text-gray-500">
-        {new Date(report.uploadedAt).toLocaleDateString()}
-        </p>
-        </div>
+    <div className="p-6 max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">{patient?.name}'s Medical Reports</h2>
         <button 
-        onClick={() => downloadReport(report._id)}
-        className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+          onClick={() => navigate('/doctor-dashboard')}
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
         >
-        Download Report
+          Back to Dashboard
         </button>
-        </div>
-        </div>
-      ))}
       </div>
-    ) : (
-      <p className="text-gray-500">No reports available for this patient.</p>
-    )}
-    </div>
+      
+      {reports.length === 0 ? (
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
+          <p>No reports found for this patient.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {reports.map(report => (
+            <div key={report._id} className="border rounded-lg p-4 hover:bg-gray-50">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium">{report.filename}</h3>
+                  <p className="text-sm text-gray-500">
+                    {new Date(report.uploadedAt || report.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDownload(report._id)}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-blue-300"
+                >
+                  {loading ? 'Downloading...' : 'Download PDF'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
